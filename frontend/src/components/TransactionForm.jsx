@@ -25,6 +25,22 @@ function extractGroupText(label = '') {
   return hasIcon ? parts.slice(1).join(' ') : label;
 }
 
+function formatBRL(value) {
+  if (!value || value === '') return '';
+  const num = String(value).replace(/\D/g, '');
+  if (num === '') return '';
+  const numInt = parseInt(num, 10);
+  if (numInt > 1000000000) return String(1000000000);
+  const str = String(numInt);
+  const len = str.length;
+  if (len <= 2) return str;
+  if (len === 3) return `${str.slice(0, 1)},${str.slice(1)}`;
+  const inteira = str.slice(0, -2);
+  const decimal = str.slice(-2);
+  const formatted = inteira.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${formatted},${decimal}`;
+}
+
 export default function TransactionForm({
   token,
   editData,
@@ -143,7 +159,13 @@ export default function TransactionForm({
   };
 
   function handleChange(e) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    if (name === 'valor') {
+      const formatted = formatBRL(value);
+      setForm((prev) => ({ ...prev, [name]: formatted }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   }
 
   async function handleSubmit(e) {
@@ -157,9 +179,14 @@ export default function TransactionForm({
 
     setLoading(true);
     try {
+      const valorNumerico = parseFloat(String(form.valor).replace(/\D/g, '')) / 100;
+      if (valorNumerico > 1000000000) {
+        setError('Valor máximo permitido: 1.000.000.000');
+        return;
+      }
       const body = {
         ...form,
-        valor: parseFloat(form.valor),
+        valor: valorNumerico,
       };
       if (editData) {
         await apiUpdateTransaction(token, editData.id, body);
@@ -186,9 +213,7 @@ export default function TransactionForm({
         />
         <input
           name="valor"
-          type="number"
-          step="0.01"
-          min="0.01"
+          type="text"
           placeholder="Valor"
           value={form.valor}
           onChange={handleChange}

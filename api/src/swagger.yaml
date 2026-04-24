@@ -80,6 +80,8 @@ components:
         valor:
           type: number
           minimum: 0.01
+          maximum: 1000000000
+          description: Valor da transação. Deve estar entre 0.01 e 1.000.000.000
         tipo:
           type: string
           enum: [ENTRADA, SAIDA]

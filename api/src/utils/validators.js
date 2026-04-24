@@ -27,6 +27,10 @@ export function validateTransaction(body) {
     return "O campo 'valor' deve ser um número positivo.";
   }
 
+  if (valor > 1000000000) {
+    return "O campo 'valor' não pode exceder 1.000.000.000.";
+  }
+
   if (tipo !== 'ENTRADA' && tipo !== 'SAIDA') {
     return "O campo 'tipo' deve ser ENTRADA ou SAIDA.";
   }
