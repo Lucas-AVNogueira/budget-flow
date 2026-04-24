@@ -30,7 +30,13 @@ function formatBRL(value) {
   const num = String(value).replace(/\D/g, '');
   if (num === '') return '';
   const numInt = parseInt(num, 10);
-  if (numInt > 1000000000) return String(1000000000);
+  if (numInt > 1000000000) return '1000000000,00';
+  
+  // Se é exatamente 1 bilhão (10 dígitos), formata corretamente com ,00
+  if (num === '1000000000') {
+    return '1.000.000.000,00';
+  }
+  
   const str = String(numInt);
   const len = str.length;
   if (len <= 2) return str;
@@ -160,11 +166,16 @@ export default function TransactionForm({
 
   function handleChange(e) {
     const { name, value } = e.target;
-    if (name === 'valor') {
+    // Apenas armazena o valor sem formatar enquanto digita
+    setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function handleBlur(e) {
+    const { name, value } = e.target;
+    // Formata apenas quando sai do campo
+    if (name === 'valor' && value) {
       const formatted = formatBRL(value);
       setForm((prev) => ({ ...prev, [name]: formatted }));
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
     }
   }
 
@@ -217,6 +228,7 @@ export default function TransactionForm({
           placeholder="Valor"
           value={form.valor}
           onChange={handleChange}
+          onBlur={handleBlur}
           required
         />
         <select name="tipo" value={form.tipo} onChange={handleChange}>
