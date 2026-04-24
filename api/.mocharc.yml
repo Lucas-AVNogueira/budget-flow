@@ -1,0 +1,6 @@
+spec: tests/*.test.js
+timeout: 2000
+reporter: mochawesome
+reporter-option:
+  - reportDir=mochawesome-report
+  - reportFilename=report

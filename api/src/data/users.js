@@ -1,0 +1,5 @@
+// Usuários mockados em memória
+export const users = [
+  { id: 1, username: 'alice', password: 'alice123' },
+  { id: 2, username: 'bob', password: 'bob123' },
+];

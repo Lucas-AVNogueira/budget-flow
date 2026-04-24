@@ -1,0 +1,267 @@
+openapi: 3.0.3
+info:
+  title: Budget-Flow API
+  description: API de gestão financeira compartilhada
+  version: 1.0.0
+servers:
+  - url: http://localhost:3001
+    description: Servidor local
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Token:
+      type: object
+      properties:
+        token:
+          type: string
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        descricao:
+          type: string
+        valor:
+          type: number
+        tipo:
+          type: string
+          enum: [ENTRADA, SAIDA]
+        responsavel:
+          type: string
+        data:
+          type: string
+          format: date
+        user_id:
+          type: integer
+    TransactionInput:
+      type: object
+      required: [descricao, valor, tipo, responsavel, data]
+      properties:
+        descricao:
+          type: string
+        valor:
+          type: number
+          minimum: 0.01
+        tipo:
+          type: string
+          enum: [ENTRADA, SAIDA]
+        responsavel:
+          type: string
+        data:
+          type: string
+          format: date
+    Summary:
+      type: object
+      properties:
+        total_entradas:
+          type: number
+        total_despesas:
+          type: number
+        saldo_mensal:
+          type: number
+        is_limite_excedido:
+          type: boolean
+        resumo_por_pessoa:
+          type: object
+          additionalProperties:
+            type: number
+    Error:
+      type: object
+      properties:
+        erro:
+          type: string
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Autenticar usuário
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /transactions:
+    get:
+      tags: [Transactions]
+      summary: Listar transações por mês e ano
+      parameters:
+        - in: query
+          name: mes
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: ano
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de transações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '401':
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags: [Transactions]
+      summary: Criar nova transação
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionInput'
+      responses:
+        '201':
+          description: Transação criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /transactions/{id}:
+    put:
+      tags: [Transactions]
+      summary: Atualizar transação
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionInput'
+      responses:
+        '200':
+          description: Transação atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Transação não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags: [Transactions]
+      summary: Excluir transação
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Transação excluída
+        '401':
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Transação não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /summary/{mes}/{ano}:
+    get:
+      tags: [Summary]
+      summary: Resumo financeiro mensal
+      parameters:
+        - in: path
+          name: mes
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: ano
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Resumo mensal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Summary'
+        '401':
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
