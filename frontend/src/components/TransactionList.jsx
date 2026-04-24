@@ -86,7 +86,7 @@ export default function TransactionList({ token, transactions, onRefresh }) {
                 <td>{t.responsavel}</td>
                 <td>
                   <span className={`badge badge-${t.tipo === 'ENTRADA' ? 'entrada' : 'saida'}`}>
-                    {t.tipo === 'ENTRADA' ? 'Entrada' : 'Saída'}
+                    {t.tipo === 'ENTRADA' ? 'Entrada' : 'Despesa'}
                   </span>
                 </td>
                 <td>{fmt(t.valor)}</td>

@@ -59,7 +59,7 @@ export default function TransactionForm({ token, editData, onSaved, onCancel, de
           required
         />
         <select name="tipo" value={form.tipo} onChange={handleChange}>
-          <option value="SAIDA">Saída</option>
+          <option value="SAIDA">Despesa</option>
           <option value="ENTRADA">Entrada</option>
         </select>
       </div>
