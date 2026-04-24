@@ -6,6 +6,7 @@ import { parse } from 'yaml';
 import swaggerUi from 'swagger-ui-express';
 
 import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
 import transactionRoutes from './routes/transactions.js';
 import summaryRoutes from './routes/summary.js';
 import categoriesRoutes from './routes/categories.js';
@@ -13,7 +14,8 @@ import { authMiddleware } from './middlewares/auth.js';
 import { notFoundMiddleware, errorMiddleware } from './middlewares/errors.js';
 import { PORT } from './utils/config.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export function createApp() {
   const app = express();
@@ -28,6 +30,7 @@ export function createApp() {
 
   // Rotas públicas
   app.use('/auth', authRoutes);
+  app.use('/users', userRoutes);
 
   // Rotas protegidas
   app.use('/transactions', authMiddleware, transactionRoutes);
@@ -42,9 +45,12 @@ export function createApp() {
 }
 
 const app = createApp();
-app.listen(PORT, () => {
-  console.log(`Budget-Flow API rodando em http://localhost:${PORT}`);
-  console.log(`Swagger UI disponível em http://localhost:${PORT}/api-docs`);
-});
+
+if (process.argv[1] === __filename) {
+  app.listen(PORT, () => {
+    console.log(`Budget-Flow API rodando em http://localhost:${PORT}`);
+    console.log(`Swagger UI disponível em http://localhost:${PORT}/api-docs`);
+  });
+}
 
 export default app;

@@ -1,21 +1,31 @@
 import { useState } from 'react';
-import { apiLogin } from '../services/api.js';
+import { apiRegisterUser } from '../services/api.js';
 import BrandLogo from '../components/BrandLogo.jsx';
 
-export default function LoginPage({ onLogin, onGoRegister, onGoForgotPassword }) {
+export default function RegisterPage({ onBackToLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setSuccess('');
 
+    if (password !== confirmPassword) {
+      setError('As senhas de confirmação não conferem.');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const token = await apiLogin(username, password);
-      onLogin(token, username);
+      await apiRegisterUser(username, password);
+      setSuccess('Cadastro realizado com sucesso. Faça login para continuar.');
+      setPassword('');
+      setConfirmPassword('');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -28,14 +38,14 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgotPassword })
       <div className="login-card">
         <div className="login-brand-panel">
           <BrandLogo variant="dark" className="login-logo" />
-          <h2 className="login-brand-title">Gerencie suas finanças com clareza.</h2>
-          <p className="login-brand-copy">Controle entradas, despesas e saldo em um só lugar.</p>
+          <h2 className="login-brand-title">Crie seu acesso em poucos segundos.</h2>
+          <p className="login-brand-copy">Novo cadastro para começar a controlar as finanças compartilhadas.</p>
         </div>
 
         <div className="login-right-panel">
           <div className="login-form-card">
-            <h1 className="login-title">Entrar</h1>
-            <p className="login-subtitle">Acesse sua área financeira compartilhada.</p>
+            <h1 className="login-title">Novo cadastro</h1>
+            <p className="login-subtitle">Preencha os dados para criar sua conta.</p>
 
             <form onSubmit={handleSubmit} className="login-form">
               <div className="form-row login-form-row">
@@ -53,24 +63,25 @@ export default function LoginPage({ onLogin, onGoRegister, onGoForgotPassword })
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <input
+                  type="password"
+                  placeholder="Confirmar senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
               </div>
 
               {error && <p className="error-msg">{error}</p>}
+              {success && <p className="success-msg">{success}</p>}
 
-              <button
-                type="submit"
-                className="btn-primary login-submit"
-                disabled={loading}
-              >
-                {loading ? 'Entrando...' : 'Entrar'}
+              <button type="submit" className="btn-primary login-submit" disabled={loading}>
+                {loading ? 'Cadastrando...' : 'Cadastrar'}
               </button>
 
               <div className="login-links-row">
-                <button type="button" className="link-btn link-btn-muted" onClick={onGoForgotPassword}>
-                  Esqueceu a senha?
-                </button>
-                <button type="button" className="link-btn link-btn-strong" onClick={onGoRegister}>
-                  Novo cadastro
+                <button type="button" className="link-btn link-btn-muted" onClick={onBackToLogin}>
+                  Voltar para entrar
                 </button>
               </div>
             </form>

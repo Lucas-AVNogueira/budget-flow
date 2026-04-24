@@ -30,7 +30,7 @@ export default function TransactionForm({
   editData,
   onSaved,
   onCancel,
-  defaultDate = '',
+  defaultDate = new Date().toLocaleDateString('en-CA'),
   categoryGroups = [],
 }) {
   const [form, setForm] = useState(

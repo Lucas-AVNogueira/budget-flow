@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import supertest from 'supertest';
 import { createApp } from '../src/server.js';
 import { resetStore } from '../src/data/store.js';
+import { resetUsers } from '../src/data/users.js';
 import { errorMiddleware } from '../src/middlewares/errors.js';
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ before(async () => {
 
 beforeEach(() => {
   resetStore();
+  resetUsers();
 });
 
 const auth = (token) => ({ Authorization: `Bearer ${token}` });
@@ -57,6 +59,149 @@ describe('POST /auth/login', () => {
     const res = await api.post('/auth/login').send({ username: 'alice', password: 'errada' });
     expect(res.status).to.equal(401);
     expect(res.body).to.have.property('erro');
+  });
+});
+
+// ─── POST /users ─────────────────────────────────────────────────────────────
+
+describe('POST /users', () => {
+  it('cadastra novo usuário com sucesso', async () => {
+    const res = await api.post('/users').send({ username: 'carol', password: 'carol123' });
+    expect(res.status).to.equal(201);
+    expect(res.body).to.include({ username: 'carol', active: true });
+    expect(res.body).to.have.property('id').that.is.a('number');
+    expect(res.body).to.not.have.property('password');
+  });
+
+  it('retorna 409 para username duplicado', async () => {
+    const res = await api.post('/users').send({ username: 'alice', password: 'qualquer' });
+    expect(res.status).to.equal(409);
+    expect(res.body.erro).to.equal('Usuário já cadastrado.');
+  });
+});
+
+// ─── GET /users e GET /users/:id ───────────────────────────────────────────
+
+describe('GET /users e GET /users/:id', () => {
+  it('lista usuários sem expor senha', async () => {
+    const res = await api.get('/users').set(auth(aliceToken));
+    expect(res.status).to.equal(200);
+    expect(res.body).to.be.an('array').that.is.not.empty;
+    expect(res.body[0]).to.have.property('id');
+    expect(res.body[0]).to.have.property('username');
+    expect(res.body[0]).to.have.property('active');
+    expect(res.body[0]).to.not.have.property('password');
+  });
+
+  it('retorna um usuário por id', async () => {
+    const res = await api.get('/users/1').set(auth(aliceToken));
+    expect(res.status).to.equal(200);
+    expect(res.body).to.deep.equal({ id: 1, username: 'alice', active: true });
+  });
+
+  it('retorna 404 para usuário inexistente', async () => {
+    const res = await api.get('/users/999').set(auth(aliceToken));
+    expect(res.status).to.equal(404);
+    expect(res.body.erro).to.equal('Usuário não encontrado.');
+  });
+
+  it('retorna 401 sem token', async () => {
+    const res = await api.get('/users');
+    expect(res.status).to.equal(401);
+    expect(res.body.erro).to.equal('Acesso não autorizado.');
+  });
+});
+
+// ─── POST /users/forgot-password e POST /users/reset-password ──────────────
+
+describe('Recuperação de senha', () => {
+  it('gera token de recuperação para usuário existente', async () => {
+    const res = await api.post('/users/forgot-password').send({ username: 'alice' });
+    expect(res.status).to.equal(200);
+    expect(res.body).to.have.property('reset_token').that.is.a('string').with.length.greaterThan(10);
+    expect(res.body).to.have.property('expires_in_seconds').that.is.a('number');
+  });
+
+  it('redefine senha com token válido', async () => {
+    const forgot = await api.post('/users/forgot-password').send({ username: 'alice' });
+    const token = forgot.body.reset_token;
+
+    const reset = await api.post('/users/reset-password').send({
+      username: 'alice',
+      reset_token: token,
+      new_password: 'aliceReset123',
+    });
+
+    expect(reset.status).to.equal(200);
+    expect(reset.body.mensagem).to.equal('Senha redefinida com sucesso.');
+
+    const oldLogin = await api.post('/auth/login').send({ username: 'alice', password: 'alice123' });
+    expect(oldLogin.status).to.equal(401);
+
+    const newLogin = await api.post('/auth/login').send({ username: 'alice', password: 'aliceReset123' });
+    expect(newLogin.status).to.equal(200);
+    expect(newLogin.body).to.have.property('token');
+  });
+
+  it('retorna 400 para token inválido', async () => {
+    const res = await api.post('/users/reset-password').send({
+      username: 'alice',
+      reset_token: 'token-invalido',
+      new_password: 'aliceNova456',
+    });
+
+    expect(res.status).to.equal(400);
+    expect(res.body.erro).to.equal('Token de recuperação inválido.');
+  });
+});
+
+// ─── PATCH /users/password ───────────────────────────────────────────────────
+
+describe('PATCH /users/password', () => {
+  it('atualiza senha do usuário autenticado', async () => {
+    const change = await api.patch('/users/password').set(auth(aliceToken)).send({
+      current_password: 'alice123',
+      new_password: 'aliceNova123',
+    });
+
+    expect(change.status).to.equal(200);
+    expect(change.body.mensagem).to.equal('Senha atualizada com sucesso.');
+
+    const oldLogin = await api.post('/auth/login').send({ username: 'alice', password: 'alice123' });
+    expect(oldLogin.status).to.equal(401);
+
+    const newLogin = await api.post('/auth/login').send({ username: 'alice', password: 'aliceNova123' });
+    expect(newLogin.status).to.equal(200);
+    expect(newLogin.body).to.have.property('token');
+  });
+});
+
+// ─── PATCH /users/:id/status ────────────────────────────────────────────────
+
+describe('PATCH /users/:id/status', () => {
+  it('desativa e ativa cadastro lógico do usuário', async () => {
+    const deactivated = await api
+      .patch('/users/1/status')
+      .set(auth(bobToken))
+      .send({ active: false });
+
+    expect(deactivated.status).to.equal(200);
+    expect(deactivated.body).to.include({ id: 1, username: 'alice', active: false });
+
+    const loginWhileInactive = await api.post('/auth/login').send(ALICE);
+    expect(loginWhileInactive.status).to.equal(401);
+
+    const activated = await api
+      .patch('/users/1/status')
+      .set(auth(bobToken))
+      .send({ active: true });
+
+    expect(activated.status).to.equal(200);
+    expect(activated.body).to.include({ id: 1, username: 'alice', active: true });
+
+    const loginAfterActivate = await api.post('/auth/login').send(ALICE);
+    expect(loginAfterActivate.status).to.equal(200);
+    expect(loginAfterActivate.body).to.have.property('token');
   });
 });
 

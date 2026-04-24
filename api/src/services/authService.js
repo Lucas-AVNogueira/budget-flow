@@ -4,7 +4,7 @@ import { JWT_SECRET, JWT_EXPIRES_IN } from '../utils/config.js';
 
 export function login(username, password) {
   const user = users.find(
-    (u) => u.username === username && u.password === password
+    (u) => u.username === username && u.password === password && u.active
   );
   if (!user) return null;
 

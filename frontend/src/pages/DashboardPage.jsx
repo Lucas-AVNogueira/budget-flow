@@ -6,7 +6,7 @@ import SummaryPanel from '../components/SummaryPanel.jsx';
 import TransactionChart from '../components/TransactionChart.jsx';
 import BrandLogo from '../components/BrandLogo.jsx';
 
-export default function DashboardPage({ token, username, onLogout }) {
+export default function DashboardPage({ token, username, onLogout, onGoChangePassword }) {
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [ano, setAno] = useState(now.getFullYear());
@@ -57,7 +57,11 @@ export default function DashboardPage({ token, username, onLogout }) {
     { v: 10, l: 'Outubro' }, { v: 11, l: 'Novembro' }, { v: 12, l: 'Dezembro' },
   ];
 
-  const defaultDate = `${ano}-${String(mes).padStart(2, '0')}-01`;
+  const today = new Date();
+  const defaultDate =
+    today.getFullYear() === ano && today.getMonth() + 1 === mes
+      ? today.toLocaleDateString('en-CA')
+      : `${ano}-${String(mes).padStart(2, '0')}-01`;
 
   return (
     <>
@@ -65,6 +69,10 @@ export default function DashboardPage({ token, username, onLogout }) {
         <BrandLogo variant="dark" style={{ height: 60 }} />
         <div className="navbar-user">
           <span>Olá, <strong>{username}</strong></span>
+          <span className="navbar-separator">|</span>
+          <button className="navbar-link" onClick={onGoChangePassword}>
+            Alterar senha
+          </button>
           <span className="navbar-separator">|</span>
           <button className="navbar-logout" onClick={onLogout}>
             Sair

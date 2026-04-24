@@ -154,6 +154,13 @@ Authorization: Bearer <jwt>
 | Metodo | Rota | Auth | Descricao |
 |---|---|---|---|
 | POST | /auth/login | Nao | Login e emissao de token JWT |
+| POST | /users | Nao | Cadastra novo usuario |
+| GET | /users | Sim | Lista usuarios cadastrados |
+| GET | /users/:id | Sim | Busca usuario por id |
+| POST | /users/forgot-password | Nao | Gera token de recuperacao |
+| POST | /users/reset-password | Nao | Redefine senha com token |
+| PATCH | /users/password | Sim | Atualiza senha do usuario autenticado |
+| PATCH | /users/:id/status | Sim | Ativa ou desativa cadastro logico |
 | GET | /transactions?mes=&ano= | Sim | Lista transacoes do periodo |
 | POST | /transactions | Sim | Cria transacao |
 | PUT | /transactions/:id | Sim | Atualiza transacao |

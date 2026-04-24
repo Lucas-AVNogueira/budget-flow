@@ -7,6 +7,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/auth': 'http://localhost:3001',
+      '/users': 'http://localhost:3001',
       '/transactions': 'http://localhost:3001',
       '/summary': 'http://localhost:3001',
       '/categories': 'http://localhost:3001',
