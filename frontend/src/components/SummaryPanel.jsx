@@ -1,3 +1,5 @@
+import { formatCategoryLabel } from '../utils/categoryLabels.js';
+
 function fmt(val) {
   return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
@@ -56,6 +58,7 @@ export default function SummaryPanel({ summary }) {
     saldo_mensal,
     is_limite_excedido,
     resumo_por_pessoa,
+    resumo_por_pessoa_categoria,
   } = summary;
 
   return (
@@ -80,9 +83,19 @@ export default function SummaryPanel({ summary }) {
         <div className="responsavel-section">
           <h3 style={{ fontSize: 14, color: '#374151', marginBottom: 8 }}>Despesas por responsável</h3>
           {Object.entries(resumo_por_pessoa).map(([nome, total]) => (
-            <div key={nome} className="responsavel-row">
-              <span>{nome}</span>
-              <strong>{fmt(total)}</strong>
+            <div key={nome} className="responsavel-group">
+              <div className="responsavel-row">
+                <span>{nome}</span>
+                <strong>{fmt(total)}</strong>
+              </div>
+              {Object.entries(resumo_por_pessoa_categoria?.[nome] || {}).map(
+                ([categoria, totalCategoria]) => (
+                  <div key={`${nome}-${categoria}`} className="responsavel-subrow">
+                    <span>{formatCategoryLabel(categoria)}</span>
+                    <strong>{fmt(totalCategoria)}</strong>
+                  </div>
+                )
+              )}
             </div>
           ))}
         </div>

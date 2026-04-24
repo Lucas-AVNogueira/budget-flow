@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiFetchTransactions, apiFetchSummary } from '../services/api.js';
+import { apiFetchTransactions, apiFetchSummary, apiFetchCategories } from '../services/api.js';
 import TransactionForm from '../components/TransactionForm.jsx';
 import TransactionList from '../components/TransactionList.jsx';
 import SummaryPanel from '../components/SummaryPanel.jsx';
@@ -12,6 +12,7 @@ export default function DashboardPage({ token, username, onLogout }) {
   const [ano, setAno] = useState(now.getFullYear());
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [categoryGroups, setCategoryGroups] = useState([]);
   const [loadError, setLoadError] = useState('');
   const [showForm, setShowForm] = useState(false);
 
@@ -32,6 +33,19 @@ export default function DashboardPage({ token, username, onLogout }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const categories = await apiFetchCategories(token);
+        setCategoryGroups(categories);
+      } catch (err) {
+        setLoadError(err.message);
+      }
+    }
+
+    loadCategories();
+  }, [token]);
 
   const years = [];
   for (let y = now.getFullYear() - 2; y <= now.getFullYear() + 1; y++) years.push(y);
@@ -85,6 +99,7 @@ export default function DashboardPage({ token, username, onLogout }) {
             <TransactionForm
               token={token}
               defaultDate={defaultDate}
+              categoryGroups={categoryGroups}
               onSaved={() => { setShowForm(false); load(); }}
               onCancel={() => setShowForm(false)}
             />
@@ -106,6 +121,7 @@ export default function DashboardPage({ token, username, onLogout }) {
           <TransactionList
             token={token}
             transactions={transactions}
+            categoryGroups={categoryGroups}
             onRefresh={load}
           />
         </div>

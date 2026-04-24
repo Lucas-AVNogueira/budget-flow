@@ -32,6 +32,38 @@ components:
         tipo:
           type: string
           enum: [ENTRADA, SAIDA]
+        categoria:
+          type: string
+          enum:
+            - Aluguel/Financiamento
+            - Condominio
+            - Luz (Energia)
+            - Agua
+            - Internet/TV a cabo
+            - Gas
+            - Supermercado (Compra do mes)
+            - Restaurantes e Bares
+            - Delivery (iFood/Ze Delivery)
+            - Padaria e Cafes
+            - Combustivel
+            - Uber / 99 / Taxi
+            - Transporte Publico (Onibus/Metro)
+            - Manutencao e Seguro (Gastos fixos com carro)
+            - Farmacia
+            - Plano de Saude / Medicos
+            - Academia
+            - Higiene e Cosmeticos
+            - Assinaturas (Netflix, Spotify, Games)
+            - Roupas e Acessorios
+            - Hobbies / Cinema / Shows
+            - Presentes
+            - Mensalidades (Escola/Faculdade)
+            - Cursos e Livros
+            - Fatura do Cartao
+            - Emprestimos / Juros
+            - Investimentos / Poupanca
+            - Impostos (IPTU, IPVA)
+            - Outros
         responsavel:
           type: string
         data:
@@ -41,7 +73,7 @@ components:
           type: integer
     TransactionInput:
       type: object
-      required: [descricao, valor, tipo, responsavel, data]
+      required: [descricao, valor, tipo, categoria, responsavel, data]
       properties:
         descricao:
           type: string
@@ -51,6 +83,38 @@ components:
         tipo:
           type: string
           enum: [ENTRADA, SAIDA]
+        categoria:
+          type: string
+          enum:
+            - Aluguel/Financiamento
+            - Condominio
+            - Luz (Energia)
+            - Agua
+            - Internet/TV a cabo
+            - Gas
+            - Supermercado (Compra do mes)
+            - Restaurantes e Bares
+            - Delivery (iFood/Ze Delivery)
+            - Padaria e Cafes
+            - Combustivel
+            - Uber / 99 / Taxi
+            - Transporte Publico (Onibus/Metro)
+            - Manutencao e Seguro (Gastos fixos com carro)
+            - Farmacia
+            - Plano de Saude / Medicos
+            - Academia
+            - Higiene e Cosmeticos
+            - Assinaturas (Netflix, Spotify, Games)
+            - Roupas e Acessorios
+            - Hobbies / Cinema / Shows
+            - Presentes
+            - Mensalidades (Escola/Faculdade)
+            - Cursos e Livros
+            - Fatura do Cartao
+            - Emprestimos / Juros
+            - Investimentos / Poupanca
+            - Impostos (IPTU, IPVA)
+            - Outros
         responsavel:
           type: string
         data:
@@ -71,6 +135,21 @@ components:
           type: object
           additionalProperties:
             type: number
+        resumo_por_pessoa_categoria:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: number
+    CategoryGroup:
+      type: object
+      properties:
+        group:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
     Error:
       type: object
       properties:
@@ -259,8 +338,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Summary'
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: Listar categorias permitidas para transacoes
+      responses:
+        '200':
+          description: Lista de grupos e categorias
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryGroup'
         '401':
-          description: Não autorizado
+          description: Nao autorizado
           content:
             application/json:
               schema:

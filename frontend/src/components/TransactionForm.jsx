@@ -1,16 +1,146 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import Select from 'react-select';
 import { apiCreateTransaction, apiUpdateTransaction } from '../services/api.js';
+import { formatCategorySelectLabel } from '../utils/categoryLabels.js';
 
-const EMPTY = { descricao: '', valor: '', tipo: 'SAIDA', responsavel: '', data: '' };
+const EMPTY = {
+  descricao: '',
+  valor: '',
+  tipo: 'SAIDA',
+  categoria: '',
+  responsavel: '',
+  data: '',
+};
 
-export default function TransactionForm({ token, editData, onSaved, onCancel, defaultDate = '' }) {
+function extractGroupIcon(label = '') {
+  const parts = label.trim().split(' ');
+  const first = parts[0] || '';
+  return /[\u{1F300}-\u{1FAFF}]/u.test(first) ? first : '';
+}
+
+function extractGroupText(label = '') {
+  const parts = label.trim().split(' ');
+  const first = parts[0] || '';
+  const hasIcon = /[\u{1F300}-\u{1FAFF}]/u.test(first);
+  return hasIcon ? parts.slice(1).join(' ') : label;
+}
+
+export default function TransactionForm({
+  token,
+  editData,
+  onSaved,
+  onCancel,
+  defaultDate = '',
+  categoryGroups = [],
+}) {
   const [form, setForm] = useState(
     editData
-      ? { ...editData, valor: String(editData.valor) }
+      ? {
+          ...EMPTY,
+          ...editData,
+          valor: String(editData.valor),
+          categoria: editData.categoria || '',
+        }
       : { ...EMPTY, data: defaultDate }
   );
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const categoryOptions = useMemo(
+    () =>
+      categoryGroups.map((group, index) => ({
+        label: group.group,
+        groupIndex: index,
+        options: group.options.map((option) => ({
+          value: option,
+          label: formatCategorySelectLabel(option),
+        })),
+      })),
+    [categoryGroups]
+  );
+
+  const selectedCategory = useMemo(() => {
+    if (!form.categoria) return null;
+    for (const group of categoryOptions) {
+      const option = group.options.find((item) => item.value === form.categoria);
+      if (option) return option;
+    }
+    return null;
+  }, [form.categoria, categoryOptions]);
+
+  const categorySelectStyles = {
+    control: (base, state) => ({
+      ...base,
+      minHeight: 44,
+      borderRadius: 10,
+      borderColor: state.isFocused ? '#7ea2d7' : '#ccd5e2',
+      boxShadow: state.isFocused ? '0 0 0 2px rgba(126, 162, 215, 0.2)' : 'none',
+      backgroundColor: '#fbfdff',
+      '&:hover': { borderColor: '#7ea2d7' },
+    }),
+    valueContainer: (base) => ({
+      ...base,
+      padding: '4px 12px',
+    }),
+    menu: (base) => ({
+      ...base,
+      width: 460,
+      maxWidth: 'calc(100vw - 24px)',
+      borderRadius: 14,
+      overflow: 'hidden',
+      border: '1px solid #d2dbe8',
+      boxShadow: '0 18px 42px rgba(15, 23, 42, 0.24)',
+      marginTop: 6,
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: 420,
+      paddingTop: 0,
+      paddingBottom: 0,
+    }),
+    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+    group: (base, state) => ({
+      ...base,
+      paddingTop: state.data.groupIndex === 0 ? 8 : 14,
+      paddingBottom: 10,
+      borderTop: state.data.groupIndex === 0 ? 'none' : '1px solid #d9e1ec',
+    }),
+    groupHeading: (base) => ({
+      ...base,
+      fontSize: 16,
+      fontWeight: 800,
+      textTransform: 'none',
+      letterSpacing: 0,
+      color: '#1f2d44',
+      margin: '0 12px 6px',
+      padding: 0,
+    }),
+    option: (base, state) => ({
+      ...base,
+      fontSize: 16,
+      lineHeight: 1.15,
+      fontWeight: 500,
+      color: '#1f2937',
+      padding: '4px 16px 4px 44px',
+      backgroundColor: state.isFocused ? '#eef4ff' : '#fff',
+      cursor: 'pointer',
+    }),
+    placeholder: (base) => ({
+      ...base,
+      color: '#6b7280',
+      fontSize: 16,
+    }),
+    singleValue: (base) => ({
+      ...base,
+      fontSize: 16,
+      fontWeight: 500,
+      color: '#273346',
+    }),
+    indicatorsContainer: (base) => ({
+      ...base,
+      paddingRight: 4,
+    }),
+  };
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -19,6 +149,12 @@ export default function TransactionForm({ token, editData, onSaved, onCancel, de
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+
+    if (!form.categoria) {
+      setError('Selecione uma categoria.');
+      return;
+    }
+
     setLoading(true);
     try {
       const body = {
@@ -62,6 +198,29 @@ export default function TransactionForm({ token, editData, onSaved, onCancel, de
           <option value="SAIDA">Despesa</option>
           <option value="ENTRADA">Entrada</option>
         </select>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <Select
+            options={categoryOptions}
+            value={selectedCategory}
+            onChange={(option) =>
+              setForm((prev) => ({ ...prev, categoria: option ? option.value : '' }))
+            }
+            placeholder="Selecione a categoria"
+            noOptionsMessage={() => 'Nenhuma categoria encontrada'}
+            isClearable
+            menuPlacement="auto"
+            menuPosition="fixed"
+            maxMenuHeight={360}
+            menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+            formatGroupLabel={(group) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 18, lineHeight: 1 }}>{extractGroupIcon(group.label)}</span>
+                <span>{extractGroupText(group.label)}</span>
+              </div>
+            )}
+            styles={categorySelectStyles}
+          />
+        </div>
       </div>
       <div className="form-row">
         <input

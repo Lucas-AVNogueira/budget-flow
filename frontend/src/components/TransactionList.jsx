@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { apiDeleteTransaction } from '../services/api.js';
 import TransactionForm from './TransactionForm.jsx';
+import { formatCategoryLabel } from '../utils/categoryLabels.js';
 
 function fmt(val) {
   return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -32,7 +33,7 @@ function TrashIcon() {
   );
 }
 
-export default function TransactionList({ token, transactions, onRefresh }) {
+export default function TransactionList({ token, transactions, onRefresh, categoryGroups }) {
   const [editId, setEditId] = useState(null);
   const [deleteError, setDeleteError] = useState('');
 
@@ -60,6 +61,7 @@ export default function TransactionList({ token, transactions, onRefresh }) {
           <tr>
             <th>Data</th>
             <th>Descrição</th>
+            <th>Categoria</th>
             <th>Responsável</th>
             <th>Tipo</th>
             <th>Valor</th>
@@ -70,10 +72,11 @@ export default function TransactionList({ token, transactions, onRefresh }) {
           {transactions.map((t) =>
             editId === t.id ? (
               <tr key={t.id}>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <TransactionForm
                     token={token}
                     editData={t}
+                    categoryGroups={categoryGroups}
                     onSaved={() => { setEditId(null); onRefresh(); }}
                     onCancel={() => setEditId(null)}
                   />
@@ -83,6 +86,7 @@ export default function TransactionList({ token, transactions, onRefresh }) {
               <tr key={t.id}>
                 <td>{formatDate(t.data)}</td>
                 <td>{t.descricao}</td>
+                <td>{formatCategoryLabel(t.categoria)}</td>
                 <td>{t.responsavel}</td>
                 <td>
                   <span className={`badge badge-${t.tipo === 'ENTRADA' ? 'entrada' : 'saida'}`}>

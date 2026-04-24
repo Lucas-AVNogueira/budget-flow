@@ -67,3 +67,12 @@ export async function apiFetchSummary(token, mes, ano) {
   if (!res.ok) throw new Error(data.erro || 'Erro ao carregar resumo.');
   return data;
 }
+
+export async function apiFetchCategories(token) {
+  const res = await fetch(`${BASE}/categories`, {
+    headers: authHeaders(token),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.erro || 'Erro ao carregar categorias.');
+  return data;
+}

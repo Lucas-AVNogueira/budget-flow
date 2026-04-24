@@ -8,6 +8,7 @@ import swaggerUi from 'swagger-ui-express';
 import authRoutes from './routes/auth.js';
 import transactionRoutes from './routes/transactions.js';
 import summaryRoutes from './routes/summary.js';
+import categoriesRoutes from './routes/categories.js';
 import { authMiddleware } from './middlewares/auth.js';
 import { notFoundMiddleware, errorMiddleware } from './middlewares/errors.js';
 import { PORT } from './utils/config.js';
@@ -31,6 +32,7 @@ export function createApp() {
   // Rotas protegidas
   app.use('/transactions', authMiddleware, transactionRoutes);
   app.use('/summary', authMiddleware, summaryRoutes);
+  app.use('/categories', authMiddleware, categoriesRoutes);
 
   // 404 e 500
   app.use(notFoundMiddleware);

@@ -1,37 +1,53 @@
-# Budget-Flow
+# Budget Flow
 
-Aplicacao fullstack para gestao financeira compartilhada, com autenticacao JWT, CRUD de transacoes e painel mensal com resumo e grafico.
+Aplicacao fullstack para controle financeiro compartilhado, com autenticacao JWT, CRUD de transacoes, categorias dinamicas, resumo mensal detalhado e dashboard grafico.
 
-## Visao Geral
+## Visao geral
 
-O projeto e dividido em duas aplicacoes:
+O projeto e dividido em dois apps:
 
-- API em Node.js + Express
+- API REST em Node.js + Express
 - Frontend em React + Vite
 
-Funcionalidades principais:
+Fluxo principal:
+
+1. Usuario faz login.
+2. Frontend recebe token JWT.
+3. Frontend consome rotas protegidas para transacoes, resumo e categorias.
+4. Dashboard mostra lista, resumo mensal e grafico consolidado.
+
+## Funcionalidades
 
 - Login com JWT
-- Cadastro, edicao e exclusao de transacoes
+- CRUD de transacoes
 - Filtro por mes e ano
-- Resumo mensal (entradas, despesas e saldo)
-- Grafico de transacoes no dashboard
+- Categoria obrigatoria por transacao
+- Lista de categorias carregada da API
+- Resumo mensal com:
+    - total de entradas
+    - total de despesas
+    - saldo mensal
+    - flag de limite excedido
+    - resumo de despesas por responsavel
+    - resumo de despesas por responsavel e por categoria
+- Grafico donut consolidado por tipo e categoria
 - Isolamento de dados por usuario
 
-## Tecnologias
+## Stack
 
 ### Backend
 
 - Node.js (ES Modules)
 - Express
 - jsonwebtoken
-- Swagger UI
+- swagger-ui-express
 - YAML
 
 ### Frontend
 
 - React 18
 - Vite 5
+- react-select
 
 ### Testes
 
@@ -40,12 +56,13 @@ Funcionalidades principais:
 - Supertest
 - Mochawesome
 
-## Estrutura
+## Estrutura do repositorio
 
 ```text
 budget-flow/
 |-- api/
 |   |-- src/
+|   |   |-- constants/
 |   |   |-- controllers/
 |   |   |-- data/
 |   |   |-- middlewares/
@@ -80,7 +97,7 @@ cd ../frontend
 npm install
 ```
 
-## Como Rodar
+## Executando localmente
 
 Abra dois terminais.
 
@@ -91,9 +108,8 @@ cd api
 npm run dev
 ```
 
-API: http://localhost:3001
-
-Swagger: http://localhost:3001/api-docs
+- API: http://localhost:3001
+- Swagger: http://localhost:3001/api-docs
 
 ### Terminal 2 - Frontend
 
@@ -102,34 +118,22 @@ cd frontend
 npm run dev
 ```
 
-App: http://localhost:5173
+- App: http://localhost:5173
 
-## Scripts
+## Usuarios de teste
 
-### API
-
-- `npm run dev`: sobe API com watch
-- `npm start`: sobe API sem watch
-- `npm test`: executa testes
-
-### Frontend
-
-- `npm run dev`: sobe frontend em desenvolvimento
-- `npm run build`: gera build de producao
-- `npm run preview`: visualiza build local
-
-## Usuarios de Teste
-
-| Usuario | Senha    |
-|--------|----------|
-| alice  | alice123 |
-| bob    | bob123   |
+| Usuario | Senha |
+|---|---|
+| alice | alice123 |
+| bob | bob123 |
 
 ## Autenticacao
 
-Token JWT e emitido no login:
+Login:
 
-`POST /auth/login`
+```http
+POST /auth/login
+```
 
 Exemplo:
 
@@ -139,50 +143,123 @@ curl -X POST http://localhost:3001/auth/login \
     -d '{"username":"alice","password":"alice123"}'
 ```
 
-Use o token nas rotas protegidas:
+Header para rotas protegidas:
 
 ```http
 Authorization: Bearer <jwt>
 ```
 
-## Endpoints
+## Endpoints principais
 
-| Metodo | Rota                   | Auth | Descricao                    |
-|-------|-------------------------|------|------------------------------|
-| POST  | /auth/login             | Nao  | Login e geracao de JWT       |
-| GET   | /transactions?mes=&ano= | Sim  | Lista transacoes por periodo |
-| POST  | /transactions           | Sim  | Cria transacao               |
-| PUT   | /transactions/:id       | Sim  | Atualiza transacao           |
-| DELETE| /transactions/:id       | Sim  | Remove transacao             |
-| GET   | /summary/:mes/:ano      | Sim  | Retorna resumo mensal        |
+| Metodo | Rota | Auth | Descricao |
+|---|---|---|---|
+| POST | /auth/login | Nao | Login e emissao de token JWT |
+| GET | /transactions?mes=&ano= | Sim | Lista transacoes do periodo |
+| POST | /transactions | Sim | Cria transacao |
+| PUT | /transactions/:id | Sim | Atualiza transacao |
+| DELETE | /transactions/:id | Sim | Remove transacao |
+| GET | /summary/:mes/:ano | Sim | Resumo mensal |
+| GET | /categories | Sim | Lista categorias agrupadas |
 
-## Regras de Negocio
+Documentacao completa no Swagger em /api-docs.
 
-- Persistencia em memoria (dados reiniciam ao subir a API)
-- IDs auto-incrementais e nao reutilizados
-- `valor` deve ser numero positivo
-- `tipo` deve ser `ENTRADA` ou `SAIDA`
-- `saldo_mensal = total_entradas - total_despesas`
-- `is_limite_excedido = true` quando saldo < 0
-- Isolamento por `user_id` do JWT
+## Modelo de transacao
+
+Campos esperados no create/update:
+
+```json
+{
+    "descricao": "Supermercado",
+    "valor": 250.9,
+    "tipo": "SAIDA",
+    "categoria": "Supermercado (Compra do mes)",
+    "responsavel": "alice",
+    "data": "2026-04-24"
+}
+```
+
+Regras importantes:
+
+- valor deve ser numero positivo
+- tipo deve ser ENTRADA ou SAIDA
+- categoria deve existir na lista permitida
+- responsavel e descricao sao obrigatorios
+- dados sao isolados por usuario autenticado
+
+## Formato do resumo mensal
+
+Resposta de GET /summary/:mes/:ano:
+
+```json
+{
+    "total_entradas": 5000,
+    "total_despesas": 3120,
+    "saldo_mensal": 1880,
+    "is_limite_excedido": false,
+    "resumo_por_pessoa": {
+        "alice": 1820,
+        "bob": 1300
+    },
+    "resumo_por_pessoa_categoria": {
+        "alice": {
+            "Supermercado (Compra do mes)": 520
+        },
+        "bob": {
+            "Fatura do Cartao": 900
+        }
+    }
+}
+```
+
+## Scripts
+
+### API
+
+- npm run dev: inicia API com watch
+- npm start: inicia API sem watch
+- npm test: executa testes automatizados
+
+### Frontend
+
+- npm run dev: inicia frontend em modo desenvolvimento
+- npm run build: gera build de producao
+- npm run preview: sobe build local para validacao
 
 ## Testes
+
+Executar testes da API:
 
 ```bash
 cd api
 npm test
 ```
 
-Relatorio HTML:
+Se a porta 3001 estiver ocupada, rode com porta aleatoria no PowerShell:
 
-`api/mochawesome-report/report.html`
+```powershell
+$env:PORT=0
+npm test
+```
 
-## Solucao de Problemas
+Relatorio HTML gerado em:
 
-- Frontend sem dados: confirme que a API esta rodando na porta 3001
-- Erro de token: faca login novamente e valide header Authorization
-- Transacao nao aparece no filtro: confira se a data pertence ao mes/ano selecionados
+- api/mochawesome-report/report.html
 
-## Licenca
+## Build de producao
 
-Projeto para estudo e uso interno.
+```bash
+cd frontend
+npm run build
+```
+
+## Solucao de problemas
+
+- Frontend sem dados: confirme API ativa em localhost:3001
+- Erro 401/403: refaca login e valide o header Authorization
+- Erro ao salvar transacao: valide categoria, tipo e data enviados
+- Filtro sem resultados: confira mes/ano selecionados e data da transacao
+
+## Observacoes
+
+- Persistencia em memoria na API (dados reiniciam ao subir o servidor).
+- Projeto focado em estudo/pratica de arquitetura fullstack com separacao API + SPA.

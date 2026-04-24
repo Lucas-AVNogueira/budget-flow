@@ -15,6 +15,7 @@ function txBody(overrides = {}) {
     descricao:   'Aluguel',
     valor:       1500,
     tipo:        'SAIDA',
+    categoria:   'Aluguel/Financiamento',
     responsavel: 'Alice',
     data:        '2024-04-15',
     ...overrides,
@@ -93,7 +94,12 @@ describe('POST /transactions', () => {
   it('cria transação com sucesso e retorna 201', async () => {
     const res = await api.post('/transactions').set(auth(aliceToken)).send(txBody());
     expect(res.status).to.equal(201);
-    expect(res.body).to.include({ descricao: 'Aluguel', valor: 1500, tipo: 'SAIDA' });
+    expect(res.body).to.include({
+      descricao: 'Aluguel',
+      valor: 1500,
+      tipo: 'SAIDA',
+      categoria: 'Aluguel/Financiamento',
+    });
     expect(res.body.id).to.be.a('number');
   });
 
@@ -222,6 +228,31 @@ describe('Validação de data', () => {
   });
 });
 
+// ─── Validação de categoria ───────────────────────────────────────────────────
+
+describe('Validação de categoria', () => {
+  it("categoria 'Outros' e aceita", async () => {
+    const res = await api
+      .post('/transactions')
+      .set(auth(aliceToken))
+      .send(txBody({ categoria: 'Outros' }));
+    expect(res.status).to.equal(201);
+    expect(res.body.categoria).to.equal('Outros');
+  });
+
+  it('categoria vazia retorna 400', async () => {
+    const res = await api.post('/transactions').set(auth(aliceToken)).send(txBody({ categoria: '' }));
+    expect(res.status).to.equal(400);
+    expect(res.body.erro).to.include('categoria');
+  });
+
+  it('categoria invalida retorna 400', async () => {
+    const res = await api.post('/transactions').set(auth(aliceToken)).send(txBody({ categoria: 'Outra' }));
+    expect(res.status).to.equal(400);
+    expect(res.body.erro).to.include('categoria');
+  });
+});
+
 // ─── PUT/DELETE com ID inexistente ────────────────────────────────────────────
 
 describe('PUT/DELETE com ID inexistente', () => {
@@ -316,6 +347,10 @@ describe('GET /summary/:mes/:ano', () => {
   it('resumo_por_pessoa correto', async () => {
     const res = await api.get('/summary/4/2024').set(auth(aliceToken));
     expect(res.body.resumo_por_pessoa).to.deep.equal({ Alice: 1500, Bob: 800 });
+    expect(res.body.resumo_por_pessoa_categoria).to.deep.equal({
+      Alice: { 'Aluguel/Financiamento': 1500 },
+      Bob: { 'Aluguel/Financiamento': 800 },
+    });
   });
 
   it('recalcula summary após criar, editar e excluir transações', async () => {
@@ -333,5 +368,24 @@ describe('GET /summary/:mes/:ano', () => {
     await api.delete(`/transactions/${cr.body.id}`).set(auth(aliceToken));
     s = await api.get('/summary/4/2024').set(auth(aliceToken));
     expect(s.body.total_despesas).to.equal(2300);
+  });
+});
+
+// ─── GET /categories ─────────────────────────────────────────────────────────
+
+describe('GET /categories', () => {
+  it('retorna lista de categorias para usuario autenticado', async () => {
+    const res = await api.get('/categories').set(auth(aliceToken));
+    expect(res.status).to.equal(200);
+    expect(res.body).to.be.an('array').that.is.not.empty;
+    expect(res.body[0]).to.have.property('group');
+    expect(res.body[0]).to.have.property('options');
+    expect(res.body[0].options).to.be.an('array').that.is.not.empty;
+  });
+
+  it('retorna 401 sem token', async () => {
+    const res = await api.get('/categories');
+    expect(res.status).to.equal(401);
+    expect(res.body.erro).to.equal('Acesso não autorizado.');
   });
 });

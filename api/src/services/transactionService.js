@@ -21,11 +21,12 @@ export function createTransaction(userId, body) {
   const error = validateTransaction(body);
   if (error) return { error };
 
-  const { descricao, valor, tipo, responsavel, data } = body;
+  const { descricao, valor, tipo, categoria, responsavel, data } = body;
   const transaction = addTransaction({
     descricao: String(descricao).trim(),
     valor,
     tipo,
+    categoria: String(categoria).trim(),
     responsavel: String(responsavel).trim(),
     data,
     user_id: userId,
@@ -41,11 +42,12 @@ export function editTransaction(userId, id, body) {
   const error = validateTransaction(body);
   if (error) return { error };
 
-  const { descricao, valor, tipo, responsavel, data } = body;
+  const { descricao, valor, tipo, categoria, responsavel, data } = body;
   const updated = updateTransaction(id, {
     descricao: String(descricao).trim(),
     valor,
     tipo,
+    categoria: String(categoria).trim(),
     responsavel: String(responsavel).trim(),
     data,
   });
@@ -75,10 +77,18 @@ export function getSummary(userId, mes, ano) {
   const is_limite_excedido = saldo_mensal < 0;
 
   const resumo_por_pessoa = {};
+  const resumo_por_pessoa_categoria = {};
   for (const t of transactions) {
     if (t.tipo === 'SAIDA') {
       resumo_por_pessoa[t.responsavel] =
         (resumo_por_pessoa[t.responsavel] || 0) + t.valor;
+
+      if (!resumo_por_pessoa_categoria[t.responsavel]) {
+        resumo_por_pessoa_categoria[t.responsavel] = {};
+      }
+
+      resumo_por_pessoa_categoria[t.responsavel][t.categoria] =
+        (resumo_por_pessoa_categoria[t.responsavel][t.categoria] || 0) + t.valor;
     }
   }
 
@@ -88,5 +98,6 @@ export function getSummary(userId, mes, ano) {
     saldo_mensal,
     is_limite_excedido,
     resumo_por_pessoa,
+    resumo_por_pessoa_categoria,
   };
 }

@@ -1,5 +1,19 @@
+import { ALLOWED_CATEGORIES } from '../constants/categories.js';
+
 export function validateTransaction(body) {
-  const { descricao, valor, tipo, responsavel, data } = body;
+  const { descricao, valor, tipo, categoria, responsavel, data } = body;
+
+  if (
+    categoria === undefined ||
+    categoria === null ||
+    String(categoria).trim() === ''
+  ) {
+    return "O campo 'categoria' e obrigatorio e nao pode estar vazio.";
+  }
+
+  if (!ALLOWED_CATEGORIES.includes(String(categoria).trim())) {
+    return "O campo 'categoria' deve ser uma categoria valida.";
+  }
 
   if (
     responsavel === undefined ||
